@@ -1,0 +1,27 @@
+# secrets & local config
+.env
+.env.local
+
+# your private data, downloads, and generated library
+output/
+downloads/
+audio/
+transcripts/
+
+# NOTE: docs/ is intentionally NOT ignored — it's the curated, key-free
+# site you publish via GitHub Pages, so it must be committed.
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

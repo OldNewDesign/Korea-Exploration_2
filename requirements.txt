@@ -1,0 +1,5 @@
+yt-dlp>=2024.1.0
+openai-whisper>=20231117
+anthropic>=0.40.0
+openpyxl>=3.1.0
+streamlit>=1.30        # only needed for the web UI (app.py)
