@@ -187,29 +187,75 @@ with tab_lib:
     if not lib:
         st.info("No videos yet. Paste some links in the first tab.")
     else:
-        view = [{
-            "Platform": v.get("platform"), "Creator": v.get("creator"),
-            "Category": v.get("topic"), "Sub": v.get("sub_category"),
-            "Location": v.get("location"), "Use": v.get("usefulness"),
-            "Action": v.get("action"), "Review": "⚠️" if v.get("needs_review") else "",
-            "Summary": v.get("summary"), "URL": v.get("url"),
-        } for v in lib]
+        st.caption("Edit a **Location** cell to fix or add a place, then Save. Saving clears "
+                   "that video's old pin so it re-geocodes. Use **Save & re-geocode** to pin "
+                   "changes immediately.")
         plats = sorted({v.get("platform") for v in lib if v.get("platform")})
         topics = sorted({v.get("topic") for v in lib if v.get("topic")})
-        f1, f2, f3 = st.columns(3)
+        f1, f2, f3, f4 = st.columns([1, 1, 1, 1])
         fp = f1.multiselect("Platform", plats)
         ft = f2.multiselect("Category", topics)
         fq = f3.text_input("Search")
-        rows = view
+        only_unmapped = f4.checkbox("Only unmapped w/ location", value=False,
+                                    help="Show videos that have location text but no pin yet.")
+
+        rows = lib
         if fp:
-            rows = [r for r in rows if r["Platform"] in fp]
+            rows = [v for v in rows if v.get("platform") in fp]
         if ft:
-            rows = [r for r in rows if r["Category"] in ft]
+            rows = [v for v in rows if v.get("topic") in ft]
+        if only_unmapped:
+            rows = [v for v in rows if (v.get("location") or "").strip() and v.get("lat") in (None, "")]
         if fq:
             ql = fq.lower()
-            rows = [r for r in rows if ql in " ".join(str(x) for x in r.values()).lower()]
-        st.dataframe(rows, use_container_width=True, hide_index=True,
-                     column_config={"URL": st.column_config.LinkColumn("URL")})
+            rows = [v for v in rows if ql in " ".join(
+                str(v.get(k, "")) for k in ("platform", "creator", "topic", "location", "summary", "url")).lower()]
+
+        editor_rows = [{
+            "Pin": "📍" if v.get("lat") not in (None, "") else "",
+            "Platform": v.get("platform"), "Creator": v.get("creator"),
+            "Category": v.get("topic"),
+            "Location": v.get("location") or "",
+            "Summary": v.get("summary") or "",
+            "URL": v.get("url"),
+        } for v in rows]
+
+        edited = st.data_editor(
+            editor_rows, hide_index=True, use_container_width=True, key="lib_editor",
+            disabled=["Pin", "Platform", "Creator", "Category", "Summary", "URL"],
+            column_config={
+                "URL": st.column_config.LinkColumn("URL"),
+                "Location": st.column_config.TextColumn(
+                    "Location", help="Edit, then Save. A real place name/address geocodes best."),
+            },
+        )
+
+        def _apply_location_edits():
+            orig = {v["url"]: (v.get("location") or "") for v in lib}
+            changed = 0
+            for r in edited:
+                u = r.get("URL")
+                new = (r.get("Location") or "").strip()
+                if u in orig and new != orig[u].strip():
+                    store.update_location(u, new)
+                    changed += 1
+            return changed
+
+        b1, b2 = st.columns(2)
+        if b1.button("💾 Save locations"):
+            n = _apply_location_edits()
+            st.success(f"Updated {n} location(s). They'll re-pin on the next geocode "
+                       "(use Save & re-geocode, or the Re-geocode button on Map & Guide).")
+            st.rerun()
+        if b2.button("💾📍 Save & re-geocode", type="primary"):
+            n = _apply_location_edits()
+            with st.spinner("Geocoding changed locations + rebuilding map/guide…"):
+                gh, gt = pv.geocode_missing()
+                export_guide.build(title=title)
+                export_map.build(title=title + " \u2014 Map")
+                export_excel.build()
+            st.success(f"Updated {n}, geocoded {gh}/{gt}. Check the Map & Guide tab.")
+            st.rerun()
 
 
 # ----------------------------- map & guide tab ----------------------------

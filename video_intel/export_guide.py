@@ -72,6 +72,8 @@ def build_card(v):
         h.append(f'<a class="watch" href="{esc(url)}" target="_blank" rel="noopener">{esc(watch_label(platform))}</a>')
     if loc:
         h.append(f'<a class="maplink" href="{esc(_map_href(loc))}" target="_blank" rel="noopener">{_pin(15)}Map</a>')
+    vkey = url or (str(v.get("creator", "")) + "|" + (loc or "") + "|" + (v.get("summary") or "")[:30])
+    h.append(f'<label class="vmark"><input type="checkbox" class="visited-cb" data-key="{esc(vkey)}">Visited</label>')
     h.append("</div></article>")
     return "".join(h)
 
@@ -110,7 +112,9 @@ def build_controls_and_content(rows):
         '<button class="clear-btn" id="gClear" aria-label="clear">&times;</button></div>'
         f'<div class="segment" id="gSeg">{"".join(seg)}</div></div>'
         f'<div class="chips" id="gChips">{"".join(chips)}</div>'
-        '<div class="resultline" id="gResult"></div></div></div>'
+        '<div class="resultline" id="gResult"></div>'
+        '<div class="visitedline"><span class="visited-count" id="gVisited"></span>'
+        '<button id="gHideVisited" class="hidev-btn">Hide visited</button></div></div></div>'
         f'<main id="content"><div class="wrap">{"".join(sections)}'
         '<div class="empty" id="gEmpty">No videos match \u2014 try clearing filters.</div>'
         '</div></main>'

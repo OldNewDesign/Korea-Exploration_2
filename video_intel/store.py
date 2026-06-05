@@ -87,6 +87,15 @@ def update_coords(url, lat, lng):
     con.close()
 
 
+def update_location(url, location):
+    """Set a video's location text and clear its old pin so it re-geocodes."""
+    con = connect()
+    con.execute("UPDATE videos SET location=?, lat=NULL, lng=NULL WHERE url=?",
+                (location, url))
+    con.commit()
+    con.close()
+
+
 def geocache_get(query):
     """None = never tried; ('miss',) = tried, no result; ('hit', lat, lng, display)."""
     con = connect()
