@@ -14,6 +14,28 @@ import io
 import zipfile
 import streamlit as st
 
+
+def _load_dotenv():
+    """Load KEY=VALUE lines from a local .env so keys don't need to be exported.
+    Existing environment variables win; lines may optionally start with 'export'."""
+    try:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+        if not os.path.exists(path):
+            return
+        for line in open(path, encoding="utf-8"):
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            if line.lower().startswith("export "):
+                line = line[7:]
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    except Exception:
+        pass
+
+
+_load_dotenv()
+
 from video_intel import config, store, transcribe, export_excel, export_guide, export_map, export_share
 import process_videos as pv
 

@@ -18,7 +18,45 @@ URLs (input/urls.csv)
  (source of truth)
 ```
 
-## Quick start (Windows / PowerShell)
+## Run locally (Windows — easiest)
+
+This app is meant to run **on your PC** (that's where your library and GPU live).
+
+1. Double-click **`setup.bat`** once — it installs the Python packages.
+2. For transcription, install FFmpeg once: `winget install Gyan.FFmpeg` (then open a new window). Skip if you'll use `--metadata-only`.
+3. Copy **`.env.example`** to **`.env`** and paste your `ANTHROPIC_API_KEY` (optional but recommended). The app loads it automatically.
+4. Double-click **`run_app.bat`** — the app opens at http://localhost:8501.
+
+Want to see it work first with no keys/network? Double-click **`demo.bat`** — it builds a sample guide + map and opens them.
+
+The `.bat` files always run from the project folder, so the "wrong folder / nested copy" problem can't happen.
+
+## Where to run what (local app + public pages)
+
+- **The app runs locally only.** It downloads videos, runs Whisper on your GPU, calls Claude, and writes your SQLite library. Your `output/video_intel.db` is gitignored, so it lives only on your PC — never on a host. Don't deploy the app to Streamlit Cloud expecting your library to be there; cloud storage is ephemeral and starts empty.
+- **Publish only the static guide + map** via GitHub Pages (the **Share (publish)** tab builds `docs/`). That's the free, durable, public piece — and it never contains an API key.
+
+## Refresh your repository with this version
+
+From your existing repo folder, **first protect your library**, then overwrite the code:
+
+```powershell
+# 1) keep a copy of your real library (output/ is gitignored, so git won't touch it,
+#    but back it up before extracting anything over the folder):
+Copy-Item output\video_intel.db ..\video_intel.db.backup -Force
+
+# 2) extract this zip OVER the repo folder (overwrite app.py, process_videos.py, video_intel\, *.bat, README)
+#    (your output\ database stays; the zip's output\ only adds .gitkeep)
+
+# 3) commit everything at once so there are no half-updated files:
+git add -A
+git commit -m "Refresh pipeline: editable locations, visited checklist, local launchers, .env loading"
+git push
+```
+
+
+
+## Manual setup (PowerShell, optional venv)
 
 ```powershell
 # from the project folder (the one containing app.py)
