@@ -81,6 +81,9 @@ def build_card(v):
     url = (v.get("url") or "").strip()
 
     h = [f'<article id="{_cid(v)}" class="card {cls}" data-plat="{esc(platform)}" data-topic="{esc(topic)}"><div class="cbody">']
+    vkey = url or (str(v.get("creator", "")) + "|" + (loc or "") + "|" + (v.get("summary") or "")[:30])
+    h.append(f'<div class="vtop"><label class="vmark"><input type="checkbox" class="visited-cb" '
+             f'data-key="{esc(vkey)}">Visited</label></div>')
     h.append(f'<div class="toprow"><div class="uploader"><span class="at">@</span>'
              f'{esc(v.get("creator") or "Unknown")}</div><span class="topic-tag">{esc(topic)}</span></div>')
     h.append(f'<div class="platrow"><span class="plat {cls}">{esc(platform)}</span>')
@@ -128,8 +131,6 @@ def build_card(v):
     h.append(f'<button class="share" type="button" data-title="{esc(share_title)}" '
              f'data-text="{esc(share_text)}" data-hash="#{_cid(v)}">'
              f'{_share_icon()}<span class="slabel">Share</span></button>')
-    vkey = url or (str(v.get("creator", "")) + "|" + (loc or "") + "|" + (v.get("summary") or "")[:30])
-    h.append(f'<label class="vmark"><input type="checkbox" class="visited-cb" data-key="{esc(vkey)}">Visited</label>')
     h.append("</div></article>")
     return "".join(h)
 
