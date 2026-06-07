@@ -22,10 +22,49 @@ def _map_href(loc):
     return "https://www.google.com/maps/search/?api=1&query=" + quote(loc)
 
 
+# Naver directions. Route mode is one word: "car", "public", "walk", or "bike".
+NAVER_ROUTE_MODE = "car"
+NAVER_APPNAME = "korea-video-guide"
+
+
+def _naver_links(v, loc, name):
+    """Return (nmap_url, web_url) for a Naver button.
+    With coordinates -> directions from the user's current location to the
+    destination (start omitted = current location). Without coordinates ->
+    a Naver place search so the button still works until you add map data."""
+    lat, lng = v.get("lat"), v.get("lng")
+    if lat not in (None, "") and lng not in (None, ""):
+        nmap = (f"nmap://route/{NAVER_ROUTE_MODE}?dlat={lat}&dlng={lng}"
+                f"&dname={quote(name)}&appname={NAVER_APPNAME}")
+        web = "https://map.naver.com/p/search/" + quote(name)
+    else:
+        q = (loc or name or "").strip()
+        if q:
+            nmap = f"nmap://search?query={quote(q)}&appname={NAVER_APPNAME}"
+            web = "https://map.naver.com/p/search/" + quote(q)
+        else:
+            nmap = f"nmap://map?appname={NAVER_APPNAME}"
+            web = "https://map.naver.com/"
+    return nmap, web
+
+
 def _pin(sz):
     return (f'<svg width="{sz}" height="{sz}" viewBox="0 0 24 24" fill="none" '
             'stroke="currentColor" stroke-width="2.2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 '
             '14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>')
+
+
+def _share_icon():
+    return ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+            'stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/>'
+            '<circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>'
+            '<path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>')
+
+
+def _cid(v):
+    import hashlib
+    key = v.get("url") or (str(v.get("creator", "")) + (v.get("summary") or "")[:40])
+    return "c" + hashlib.md5(key.encode("utf-8")).hexdigest()[:8]
 
 
 def build_card(v):
@@ -41,7 +80,7 @@ def build_card(v):
     loc = (v.get("location") or "").strip()
     url = (v.get("url") or "").strip()
 
-    h = [f'<article class="card {cls}" data-plat="{esc(platform)}" data-topic="{esc(topic)}"><div class="cbody">']
+    h = [f'<article id="{_cid(v)}" class="card {cls}" data-plat="{esc(platform)}" data-topic="{esc(topic)}"><div class="cbody">']
     h.append(f'<div class="toprow"><div class="uploader"><span class="at">@</span>'
              f'{esc(v.get("creator") or "Unknown")}</div><span class="topic-tag">{esc(topic)}</span></div>')
     h.append(f'<div class="platrow"><span class="plat {cls}">{esc(platform)}</span>')
@@ -72,6 +111,23 @@ def build_card(v):
         h.append(f'<a class="watch" href="{esc(url)}" target="_blank" rel="noopener">{esc(watch_label(platform))}</a>')
     if loc:
         h.append(f'<a class="maplink" href="{esc(_map_href(loc))}" target="_blank" rel="noopener">{_pin(15)}Map</a>')
+    nav_name = loc or str(v.get("creator") or "") or "destination"
+    nmap_url, nweb_url = _naver_links(v, loc, nav_name)
+    h.append(f'<a class="naver" href="{esc(nweb_url)}" target="_blank" rel="noopener" '
+             f'data-nmap="{esc(nmap_url)}" data-web="{esc(nweb_url)}">'
+             f'<span class="nlogo">N</span>Directions</a>')
+    # Share: native share sheet on mobile, clipboard copy on desktop.
+    share_title = nav_name if loc else (str(v.get("creator") or "") or "Saved spot")
+    share_lines = [share_title, f"({topic})" if topic else ""]
+    if loc:
+        share_lines.append("\U0001f4cd " + loc)
+        share_lines.append(_map_href(loc))
+    if url:
+        share_lines.append("\u25b6 " + url)
+    share_text = "\n".join(x for x in share_lines if x)
+    h.append(f'<button class="share" type="button" data-title="{esc(share_title)}" '
+             f'data-text="{esc(share_text)}" data-hash="#{_cid(v)}">'
+             f'{_share_icon()}<span class="slabel">Share</span></button>')
     vkey = url or (str(v.get("creator", "")) + "|" + (loc or "") + "|" + (v.get("summary") or "")[:30])
     h.append(f'<label class="vmark"><input type="checkbox" class="visited-cb" data-key="{esc(vkey)}">Visited</label>')
     h.append("</div></article>")
